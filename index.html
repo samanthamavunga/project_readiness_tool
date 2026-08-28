@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Readiness Tool</title>
+<style>
+  :root{
+    --green-900:#142E22;
+    --green-700:#1B4332;
+    --green-600:#24543F;
+    --green-100:#E4EEE7;
+    --gold-500:#B8863D;
+    --gold-600:#96692A;
+    --paper:#F7F8F6;
+    --surface:#FFFFFF;
+    --ink:#1A2420;
+    --muted:#5C6B62;
+    --border:#D8E0DA;
+    --shadow: 0 1px 2px rgba(20,46,34,0.06), 0 6px 20px -8px rgba(20,46,34,0.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --green-900:#EDEDE6; --green-700:#8FCBA8; --green-600:#7AB897; --green-100:#152019;
+      --gold-500:#D2A257; --gold-600:#E4B96E; --paper:#0E1712; --surface:#131F19;
+      --ink:#EDEDE6; --muted:#8FA096; --border:#25352C;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 28px -10px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --green-900:#EDEDE6; --green-700:#8FCBA8; --green-600:#7AB897; --green-100:#152019;
+    --gold-500:#D2A257; --gold-600:#E4B96E; --paper:#0E1712; --surface:#131F19;
+    --ink:#EDEDE6; --muted:#8FA096; --border:#25352C;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 28px -10px rgba(0,0,0,0.55);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:"Newsreader",Georgia,"Times New Roman",serif; text-wrap:balance; margin:0;}
+  p{margin:0;}
+  a{color:inherit;}
+  button{font-family:inherit;}
+  ::selection{background:var(--gold-500); color:var(--surface);}
+
+  .mock-frame{
+    max-width:900px; margin:0 auto; background:var(--surface);
+    border:1px solid var(--border); border-radius:6px; overflow:hidden; box-shadow:var(--shadow);
+  }
+  .page-pad{ padding:56px clamp(24px,5vw,64px) 72px; }
+
+  .mock-chrome{
+    display:flex; align-items:center; gap:8px; padding:10px 16px;
+    background:var(--green-100); border-bottom:1px solid var(--border);
+  }
+  .mock-dot{width:9px;height:9px;border-radius:50%;background:var(--border);}
+  .mock-url{ margin-left:8px; font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
+
+  .breadcrumb{ font-size:13px; color:var(--muted); display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:22px; }
+  .breadcrumb .sep{color:var(--border);}
+  .breadcrumb .current{color:var(--ink); font-weight:600;}
+  .breadcrumb button{ background:none; border:none; padding:0; font:inherit; color:inherit; cursor:pointer; }
+  .breadcrumb button:hover{ color:var(--green-700); text-decoration:underline; }
+
+  .banner{
+    display:flex; gap:10px; align-items:flex-start; background:var(--green-100);
+    border:1px solid var(--border); border-left:3px solid var(--gold-500); border-radius:4px;
+    padding:12px 16px; font-size:14px; color:var(--ink); margin-bottom:32px; line-height:1.5;
+  }
+  .banner strong{color:var(--gold-600);}
+
+  .eyebrow{ font-size:12px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--gold-600); margin-bottom:10px; }
+  h1.title{ font-size:clamp(32px,4.4vw,44px); font-weight:600; color:var(--green-900); line-height:1.08; margin-bottom:18px; }
+  .lede{
+    font-family:"Newsreader",Georgia,serif; font-style:italic; font-size:19px; line-height:1.55;
+    color:var(--green-700); max-width:640px; margin-bottom:20px;
+  }
+  .intro-copy{ font-size:15.5px; line-height:1.7; color:var(--ink); max-width:640px; }
+  .intro-copy + .intro-copy{margin-top:12px;}
+
+  section{margin-top:52px;}
+  .section-head{margin-bottom:20px;}
+  .section-head h2{ font-size:23px; font-weight:600; color:var(--green-900); margin-bottom:6px; }
+  .section-head p{ font-size:14.5px; color:var(--muted); max-width:620px; line-height:1.6; }
+
+  /* three phases (overview) */
+  .phase-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .phase-card{
+    background:var(--green-100); border:1px solid var(--border); border-radius:5px;
+    padding:20px 18px; position:relative; text-align:left; cursor:pointer;
+    font:inherit; color:inherit; transition:transform .12s ease, box-shadow .12s ease;
+    display:block; width:100%;
+  }
+  .phase-card:hover, .phase-card:focus-visible{ transform:translateY(-2px); box-shadow:var(--shadow); outline:2px solid var(--gold-500); outline-offset:2px; }
+  .phase-num{ font-family:"Newsreader",Georgia,serif; font-size:13px; font-weight:600; color:var(--gold-600); letter-spacing:.06em; text-transform:uppercase; margin-bottom:10px; }
+  .phase-card h3{ font-size:18px; font-weight:600; color:var(--green-900); margin-bottom:8px; }
+  .phase-card .dims{ font-size:13px; color:var(--muted); line-height:1.55; }
+  .phase-card .enter-hint{ margin-top:14px; font-size:12.5px; font-weight:700; color:var(--green-700); display:flex; align-items:center; gap:5px; }
+  .arc-note{ display:flex; align-items:center; gap:10px; margin-top:16px; font-size:13.5px; color:var(--muted); }
+  .arc-note .line{flex:1; height:1px; background:var(--border);}
+
+  /* diagnostic */
+  .diagnostic{ display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:start; }
+  .diagnostic .lead-stat{ font-family:"Newsreader",Georgia,serif; font-size:26px; color:var(--green-700); line-height:1.3; font-weight:500; }
+  .diagnostic .support{ font-size:14.5px; line-height:1.7; color:var(--ink); }
+
+  /* downloads */
+  .downloads{ display:flex; flex-direction:column; border:1px solid var(--border); border-radius:5px; overflow:hidden; }
+  .dl-row{ display:flex; align-items:center; gap:14px; padding:15px 18px; background:var(--surface); text-decoration:none; border-bottom:1px solid var(--border); }
+  .dl-row:last-child{border-bottom:none;}
+  .dl-icon{ width:34px;height:34px;flex:none; border-radius:5px; background:var(--green-100); color:var(--green-700);
+    display:flex;align-items:center;justify-content:center; font-size:12px; font-weight:700; letter-spacing:.02em; }
+  .dl-meta{flex:1;}
+  .dl-title{font-size:14.5px; font-weight:600; color:var(--ink);}
+  .dl-sub{font-size:12.5px; color:var(--muted); margin-top:2px; font-variant-numeric:tabular-nums;}
+  .dl-arrow{color:var(--muted); font-size:16px;}
+
+  /* feedback */
+  .feedback-panel{ background:var(--green-700); border-radius:6px; padding:30px clamp(20px,4vw,36px); color:#FDFCF8; }
+  .feedback-panel h2{ color:#FDFCF8; font-size:22px; margin-bottom:10px; }
+  .feedback-panel p.fp-copy{ font-size:14.5px; line-height:1.7; color:rgba(253,252,248,0.82); max-width:600px; margin-bottom:18px; }
+  .prompt-list{ list-style:none; margin:0 0 22px; padding:0; display:flex; flex-direction:column; gap:10px; }
+  .prompt-list li{ font-size:13.5px; line-height:1.55; color:rgba(253,252,248,0.92); padding-left:18px; position:relative; }
+  .prompt-list li::before{ content:""; position:absolute; left:0; top:7px; width:6px;height:6px;border-radius:50%; background:var(--gold-500); }
+  .fp-actions{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+  .cta-btn{
+    display:inline-flex; align-items:center; gap:8px; background:var(--gold-500); color:var(--green-900);
+    font-weight:700; font-size:14px; padding:12px 22px; border-radius:4px; text-decoration:none; border:none; cursor:pointer;
+  }
+  .cta-btn.secondary{ background:transparent; color:#FDFCF8; border:1px solid rgba(253,252,248,0.4); }
+  .cta-note{ font-size:12px; color:rgba(253,252,248,0.65); margin-top:10px; }
+
+  footer{ margin-top:56px; padding-top:22px; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); }
+
+  /* ---- phase detail view ---- */
+  .back-link{
+    display:inline-flex; align-items:center; gap:6px; background:none; border:none; cursor:pointer;
+    font-size:13px; font-weight:600; color:var(--green-700); padding:0; margin-bottom:22px;
+  }
+  .back-link:hover{ text-decoration:underline; }
+  .detail-weight{ display:inline-block; font-size:12px; font-weight:700; color:var(--gold-600); background:var(--green-100);
+    border-radius:3px; padding:3px 9px; margin-bottom:14px; }
+  .purpose-block{ font-size:15px; line-height:1.7; color:var(--ink); max-width:680px; margin-bottom:34px; }
+
+  .dim-list{ display:flex; flex-direction:column; gap:0; border-top:1px solid var(--border); margin-bottom:14px; }
+  .dim-scan-hint{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); margin-bottom:16px; }
+  .dim-scan-hint kbd{ font:inherit; background:var(--green-100); border:1px solid var(--border); border-radius:3px; padding:1px 7px; color:var(--green-700); font-weight:600; }
+
+  /* native <details>/<summary> accordion, expands without JS; every panel renders
+     open if a browser has no script support at all, which is the graceful-degradation
+     requirement for the live Elementor build too */
+  .dim-item{ border-bottom:1px solid var(--border); }
+  .dim-item summary{
+    display:grid; grid-template-columns:2.6rem 1fr auto; align-items:center; gap:16px;
+    padding:16px 4px; cursor:pointer; list-style:none; -webkit-tap-highlight-color:transparent;
+  }
+  .dim-item summary::-webkit-details-marker{ display:none; }
+  .dim-item summary:hover .dim-name{ color:var(--green-700); }
+  .dim-item summary:focus-visible{ outline:2px solid var(--gold-500); outline-offset:-2px; }
+  .dim-idx{ font-family:"Newsreader",Georgia,serif; font-size:20px; font-weight:600; color:var(--gold-600); }
+  .dim-head{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .dim-name{ font-size:16px; font-weight:600; color:var(--green-900); }
+  .dim-weight{ font-size:11.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .dim-chevron{ width:20px; height:20px; flex:none; color:var(--muted); transition:transform .15s ease; display:flex; align-items:center; justify-content:center; }
+  .dim-item[open] .dim-chevron{ transform:rotate(180deg); }
+  .dim-desc{ font-size:13.5px; line-height:1.65; color:var(--ink); max-width:620px; padding:0 4px 20px calc(2.6rem + 16px); }
+
+  .phase-feedback-cta{ margin-top:38px; padding:24px; background:var(--green-100); border-radius:6px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+  .phase-feedback-cta p{ font-size:13.5px; color:var(--ink); max-width:460px; line-height:1.6; }
+  .phase-feedback-cta strong{ display:block; font-size:15px; color:var(--green-900); margin-bottom:3px; }
+
+  view{ display:none; }
+  view.active{ display:block; }
+
+  /* ---- response form ---- */
+  .form-section{ margin-bottom:34px; }
+  .form-section > .fs-label{ font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--gold-600); margin-bottom:16px; }
+  .field-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px 20px; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field.full{ grid-column:1 / -1; }
+  .field label{ font-size:13px; font-weight:600; color:var(--ink); }
+  .field .optional{ font-weight:400; color:var(--muted); font-size:12px; }
+  .field input[type="text"], .field input[type="email"], .field select, .field textarea{
+    font-family:inherit; font-size:14px; color:var(--ink); background:var(--surface);
+    border:1px solid var(--border); border-radius:4px; padding:10px 12px; width:100%;
+  }
+  .field textarea{ resize:vertical; min-height:76px; line-height:1.5; }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:2px solid var(--gold-500); outline-offset:1px; border-color:var(--gold-500); }
+
+  .phase-tags{ display:flex; flex-wrap:wrap; gap:10px; }
+  .phase-tag{ position:relative; }
+  .phase-tag input{ position:absolute; opacity:0; inset:0; cursor:pointer; margin:0; }
+  .phase-tag span{
+    display:inline-flex; align-items:center; padding:8px 14px; border-radius:20px; font-size:13px; font-weight:600;
+    background:var(--surface); border:1px solid var(--border); color:var(--muted); pointer-events:none;
+  }
+  .phase-tag input:checked + span{ background:var(--green-700); border-color:var(--green-700); color:#fff; }
+  .phase-tag input:focus-visible + span{ outline:2px solid var(--gold-500); outline-offset:2px; }
+
+  .q-block{ padding:18px 0; border-top:1px solid var(--border); }
+  .q-block:last-of-type{ border-bottom:1px solid var(--border); }
+  .q-label{ font-size:14.5px; font-weight:600; color:var(--green-900); margin-bottom:3px; line-height:1.45; }
+  .q-hint{ font-size:12px; color:var(--muted); margin-bottom:10px; }
+
+  .guiding-list{ list-style:none; margin:0 0 14px; padding:14px 16px; background:var(--green-100); border-radius:5px; display:flex; flex-direction:column; gap:8px; }
+  .guiding-list li{ font-size:13px; line-height:1.55; color:var(--ink); padding-left:16px; position:relative; }
+  .guiding-list li::before{ content:""; position:absolute; left:0; top:6px; width:5px;height:5px;border-radius:50%; background:var(--gold-500); }
+
+  .file-field{ display:flex; align-items:center; gap:12px; position:relative; }
+  .file-btn{ display:inline-flex; align-items:center; font-size:13px; font-weight:600; color:var(--green-700);
+    background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:9px 16px; cursor:pointer; }
+  .file-btn:hover{ border-color:var(--green-700); }
+  .file-chosen{ font-size:12.5px; color:var(--muted); }
+
+  .consent-row{ display:flex; align-items:flex-start; gap:10px; margin:28px 0 26px; }
+  .consent-row input{ margin-top:3px; flex:none; }
+  .consent-row label{ font-size:13px; color:var(--ink); line-height:1.55; }
+
+  .form-actions{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .form-actions button.cta-btn{ cursor:pointer; }
+  .matrix-note{ font-size:12.5px; color:var(--muted); margin-top:22px; padding-top:18px; border-top:1px solid var(--border); }
+  .matrix-note a{ color:var(--green-700); font-weight:600; text-decoration:underline; }
+
+  .confirm-panel{ text-align:left; padding:20px 0 10px; }
+  .confirm-icon{
+    width:52px; height:52px; border-radius:50%; background:var(--green-100); color:var(--green-700);
+    display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:20px;
+  }
+  .confirm-panel h1{ font-size:28px; color:var(--green-900); margin-bottom:12px; }
+  .confirm-panel p{ font-size:14.5px; line-height:1.7; color:var(--ink); max-width:520px; margin-bottom:10px; }
+
+  /* ---- inline text editing (claude.ai artifact only) ---- */
+  body.editing [data-edit-key]{
+    outline:1px dashed var(--gold-500); outline-offset:3px; border-radius:2px; cursor:text;
+  }
+  body.editing [data-edit-key]:hover{ background:var(--green-100); }
+  .edit-toolbar{
+    position:fixed; right:18px; bottom:18px; z-index:1000; display:flex; gap:8px; align-items:center;
+    background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 12px; box-shadow:var(--shadow);
+    font-size:13px;
+  }
+  .edit-toolbar button{
+    font-size:13px; font-weight:600; padding:8px 14px; border-radius:4px; border:1px solid var(--border);
+    background:var(--surface); color:var(--green-900); cursor:pointer;
+  }
+  .edit-toolbar button.primary{ background:var(--gold-500); color:var(--green-900); border-color:var(--gold-500); }
+  .edit-toolbar button.quiet{ background:none; border:none; color:var(--muted); }
+  .edit-status{ font-size:12px; color:var(--muted); min-width:0; }
+
+  @media (max-width:640px){
+    .phase-row{grid-template-columns:1fr;}
+    .diagnostic{grid-template-columns:1fr;}
+    .page-pad{padding:36px 20px 48px;}
+    .dim-item{grid-template-columns:2rem 1fr;}
+  }
+</style>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,500;0,600;1,500&family=Public+Sans:wght@400;500;600;700&display=swap">
+
+</head>
+<body>
+<div style="padding:28px 16px; min-height:100%;">
+  <div class="mock-frame">
+    <div class="mock-chrome" aria-hidden="true">
+      <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
+      <span class="mock-url" id="mockUrl">africanclimatefoundation.org / programmes / sustainable-finance / project-readiness-tool</span>
+    </div>
+
+    <div class="page-pad">
+
+      <!-- ============ OVERVIEW ============ -->
+      <view id="overview" class="active"></view>
+
+      <!-- ============ PHASE DETAIL VIEWS ============ -->
+      <view id="p1"></view>
+      <view id="p2"></view>
+      <view id="p3"></view>
+
+      <!-- ============ RESPONSE FORM ============ -->
+      <view id="respond"></view>
+
+    </div>
+  </div>
+</div>
+
+<div class="edit-toolbar" id="editToolbar" style="display:none;"></div>
+
+<script id="siteScript">
+  // ---- editable content (overview page copy) ----
+  const CONTENT = /*__CONTENT_START__*/ {
+    banner: "This tool is in consultation until 30 September 2026. It is not currently an application route for ACF funding or technical assistance. Project submissions sent through this page cannot be processed during the consultation window. Comments on the tool's design are what we're asking for here.",
+    eyebrow: "Sustainable Finance · Open Consultation",
+    title: "The Project Readiness Tool",
+    lede: "Africa’s climate financing gap is not a shortage of investable ideas. It is a shortage of projects prepared to the standard that capital requires.",
+    intro1: "ACF built this tool to help close that gap: a phased self-assessment that grantees use to test whether a project concept, and later a transaction, is ready to hold its own with funders, DFIs and commercial investors. It is sector-agnostic and applies equally to adaptation and mitigation projects.",
+    intro2: "Before it is finalised, we're opening it for comment. If you fund, structure, or advise on African climate projects, we want to hear whether it asks the right questions.",
+    phasesHead: "Three phases, one preparation arc",
+    phasesSub: "The same topics recur across phases (financial logic, safeguards, institutional capacity) but at increasing depth as a project matures. Click a phase to see its dimensions and why each one is asked.",
+    phaseCards: {
+      p1: { summary: "5 dimensions · National alignment, climate risk screening, initial financial logic, safeguards scoping, institutional mapping" },
+      p2: { summary: "6 dimensions · Technical feasibility, financial model, risk allocation, blended finance structuring, fiduciary readiness, market sounding" },
+      p3: { summary: "6 dimensions · Term sheet & structure, procurement, independent due diligence, disclosure, legal readiness, investor materials" },
+    },
+    arcNote: "Each phase closes with a gate: minimum outputs that must be in place before the next begins.",
+    diagStat: "A diagnostic, not a scorecard.",
+    diagSupport: "There is no pass or fail. The tool maps what's complete, what's partial, and what hasn't begun. A gap becomes a line in a technical assistance workplan, not a reason for rejection. Findings also feed ACF's learning on where preparation support is needed most across sectors and countries.",
+    dlHead: "Download the consultation pack",
+    dlSub: "Review the tool and the paper behind it, then tell us what to change.",
+    downloads: [
+      { icon: "PDF", title: "Consultation paper", sub: "PDF · 3 pages" },
+      { icon: "XLS", title: "Readiness tool", sub: "XLSX · all three phases" },
+      { icon: "DOC", title: "Phase guidance templates", sub: "DOCX · 3 files, one per phase" },
+      { icon: "RM", title: "Structured response matrix", sub: "DOCX · for line-by-line technical comments" },
+    ],
+    fbHead: "Tell us what to change",
+    fbCopy: "We're seeking comment from funders, climate technical experts, governments, civil society and researchers on the questions themselves, not just the page. A few to get started:",
+    prompts: [
+      "Does the scoring adequately capture the concessional finance leverage ratio major climate funds require?",
+      "Are the climate risk metrics aligned with current IPCC and EU Taxonomy definitions?",
+      "What data gaps do project developers in your network typically face when completing a tool like this?",
+    ],
+    fbNote: "Quick response: a short private form, answers aren't visible to other respondents. Detailed technical review: fill in the response matrix and return it by email, using the same format major climate funds use for line-by-line comment.",
+    footerLeft: "© African Climate Foundation",
+    footerRight: "Consultation open through 30 September 2026 · pipelinereadiness@acf.org",
+    respondIntro: "Five short fields. Answer whatever falls within your expertise. This response is confidential to ACF and isn't visible to other respondents.",
+    respondFeedbackHint: "Pick your respondent type above and this list updates with the questions written for you. Answer whichever apply, free text below, no need to address each one in turn.",
+    matrixNote: "Prefer to comment section-by-section against the full field list instead? Download the response matrix and return it by email, the format major climate funds use for technical review.",
+  } /*__CONTENT_END__*/;
+
+  const PHASES = /*__PHASES_START__*/ {
+    p1: {
+      label: "Phase 1", title: "Concept Readiness", slug: "concept-readiness",
+      purpose: "Enables a project sponsor, with ACF support, to self-assess whether a proposed project concept is strategically grounded, climate-relevant, institutionally anchored, financially plausible, and aware of its environmental and social risks, before moving toward investment readiness support.",
+      weight: "5 dimensions · weighted equally (20% each)",
+      dims: [
+        ["National Alignment", "Tests whether the concept sits inside real public priorities and institutional mandates, not just a good idea in search of a home."],
+        ["Context & Climate Risk Screening", "Asks for a credible hazard-to-intervention logic (hazard → exposure → vulnerability → impact → intervention) rather than a generic climate rationale."],
+        ["Initial Financial Logic", "Asks for an early but disciplined cost and financing story: order-of-magnitude estimates and a plausible revenue or sustainability hypothesis, not a full financial model."],
+        ["Safeguards Scoping", "Asks whether environmental and social issues have been identified early enough to shape design and next-step studies, not a completed ESIA."],
+        ["Institutional Mapping", "Asks who is actually accountable for moving the concept forward. A concept without a named, mandated owner rarely survives a financier’s due diligence."],
+      ]
+    },
+    p2: {
+      label: "Phase 2", title: "Investment Readiness", slug: "investment-readiness",
+      purpose: "Enables a project sponsor, with ACF support, to self-assess whether the project has progressed from concept-level screening to a stage where technical, financial, safeguards, fiduciary, and market-readiness evidence can support investment structuring and engagement with financiers.",
+      weight: "6 dimensions · weighted equally (16.7% each)",
+      dims: [
+        ["Feasibility & Technical Design", "Asks for the studies and design maturity a financier would want to see before structuring conversations begin."],
+        ["Detailed Financial Model", "Asks for a complete, evidence-based financial model capable of supporting structured discussions with financiers."],
+        ["Risk Allocation Framework", "Tests whether the project has worked through who bears which risk, usually where deals stall."],
+        ["Blended Finance Structuring", "Tests how different sources of capital (grant, concessional, commercial) fit together into a credible capital stack."],
+        ["Safeguards & Fiduciary Readiness", "Raises the bar from screening to completed or commissioned assessments, and confirms the implementing entity can actually manage funds."],
+        ["Market Sounding & MRV Alignment", "Checks whether the project has been tested with real financiers, and whether its monitoring and reporting will satisfy whoever ultimately funds it."],
+      ]
+    },
+    p3: {
+      label: "Phase 3", title: "Transaction Readiness", slug: "transaction-readiness",
+      purpose: "Enables a project sponsor, with ACF support, to self-assess whether the project has progressed sufficiently to proceed toward final financing decisions, credit committee review, or financial close.",
+      weight: "6 dimensions · weighted equally (16.7% each)",
+      dims: [
+        ["Term Sheet & Transaction Structure", "Confirms the commercial parameters and risk allocation are defined enough to support lender or investor negotiations."],
+        ["Procurement & Implementation Finalisation", "Confirms the delivery and procurement framework is advanced enough for implementation to proceed once financing is approved."],
+        ["Independent Review & Due Diligence", "Confirms a third party, not only the sponsor, has validated the technical, financial and legal picture."],
+        ["Disclosure & Standards Alignment", "Confirms climate disclosure, MRV and cross-cutting standards are prepared to the level target financiers expect."],
+        ["Legal & Contractual Readiness", "Confirms transaction documents, approvals and security arrangements are advanced enough to support financial close."],
+        ["Final Investor Materials & Engagement", "Confirms investor-facing materials are complete and engagement has progressed to a disciplined plan through close."],
+      ]
+    }
+  } /*__PHASES_END__*/;
+
+  // ---- small path helpers used by edit mode ----
+  function getByPath(root, path){
+    return path.split(".").reduce((o, k) => (o == null ? o : o[k]), root);
+  }
+  function setByPath(root, path, val){
+    const keys = path.split(".");
+    const last = keys.pop();
+    const target = keys.reduce((o, k) => o[k], root);
+    target[last] = val;
+  }
+  const EDIT_ROOTS = { CONTENT, PHASES };
+
+  function ek(path){ return `data-edit-key="${path}"`; }
+
+  // ---- overview render ----
+  function renderOverview(){
+    const dl = CONTENT.downloads.map((d, i) => `
+      <a class="dl-row" href="#">
+        <div class="dl-icon">${d.icon}</div>
+        <div class="dl-meta">
+          <div class="dl-title" ${ek(`CONTENT.downloads.${i}.title`)}>${d.title}</div>
+          <div class="dl-sub" ${ek(`CONTENT.downloads.${i}.sub`)}>${d.sub}</div>
+        </div>
+        <div class="dl-arrow">&#8595;</div>
+      </a>`).join("");
+
+    const prompts = CONTENT.prompts.map((p, i) => `<li ${ek(`CONTENT.prompts.${i}`)}>${p}</li>`).join("");
+
+    return `
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <span>Programmes</span><span class="sep">/</span>
+        <span>Sustainable finance</span><span class="sep">/</span>
+        <span class="current">Project readiness tool</span>
+      </nav>
+
+      <div class="banner">
+        <span>&#9432;</span>
+        <span ${ek("CONTENT.banner")}>${CONTENT.banner}</span>
+      </div>
+
+      <div class="eyebrow" ${ek("CONTENT.eyebrow")}>${CONTENT.eyebrow}</div>
+      <h1 class="title" ${ek("CONTENT.title")}>${CONTENT.title}</h1>
+      <p class="lede" ${ek("CONTENT.lede")}>${CONTENT.lede}</p>
+      <p class="intro-copy" ${ek("CONTENT.intro1")}>${CONTENT.intro1}</p>
+      <p class="intro-copy" ${ek("CONTENT.intro2")}>${CONTENT.intro2}</p>
+
+      <section aria-labelledby="phases-h">
+        <div class="section-head">
+          <h2 id="phases-h" ${ek("CONTENT.phasesHead")}>${CONTENT.phasesHead}</h2>
+          <p ${ek("CONTENT.phasesSub")}>${CONTENT.phasesSub}</p>
+        </div>
+        <div class="phase-row">
+          <button class="phase-card" onclick="go('p1')" aria-label="Open Concept Readiness detail">
+            <div class="phase-num">Phase 1</div>
+            <h3>Concept readiness</h3>
+            <div class="dims" ${ek("CONTENT.phaseCards.p1.summary")}>${CONTENT.phaseCards.p1.summary}</div>
+            <div class="enter-hint">See the dimensions &#8594;</div>
+          </button>
+          <button class="phase-card" onclick="go('p2')" aria-label="Open Investment Readiness detail">
+            <div class="phase-num">Phase 2</div>
+            <h3>Investment readiness</h3>
+            <div class="dims" ${ek("CONTENT.phaseCards.p2.summary")}>${CONTENT.phaseCards.p2.summary}</div>
+            <div class="enter-hint">See the dimensions &#8594;</div>
+          </button>
+          <button class="phase-card" onclick="go('p3')" aria-label="Open Transaction Readiness detail">
+            <div class="phase-num">Phase 3</div>
+            <h3>Transaction readiness</h3>
+            <div class="dims" ${ek("CONTENT.phaseCards.p3.summary")}>${CONTENT.phaseCards.p3.summary}</div>
+            <div class="enter-hint">See the dimensions &#8594;</div>
+          </button>
+        </div>
+        <div class="arc-note"><div class="line"></div><span ${ek("CONTENT.arcNote")}>${CONTENT.arcNote}</span><div class="line"></div></div>
+      </section>
+
+      <section aria-labelledby="diag-h">
+        <div class="diagnostic">
+          <div class="lead-stat" ${ek("CONTENT.diagStat")}>${CONTENT.diagStat}</div>
+          <div class="support" ${ek("CONTENT.diagSupport")}>${CONTENT.diagSupport}</div>
+        </div>
+      </section>
+
+      <section aria-labelledby="dl-h">
+        <div class="section-head">
+          <h2 id="dl-h" ${ek("CONTENT.dlHead")}>${CONTENT.dlHead}</h2>
+          <p ${ek("CONTENT.dlSub")}>${CONTENT.dlSub}</p>
+        </div>
+        <div class="downloads">${dl}</div>
+      </section>
+
+      <section aria-labelledby="fb-h">
+        <div class="feedback-panel">
+          <h2 id="fb-h" ${ek("CONTENT.fbHead")}>${CONTENT.fbHead}</h2>
+          <p class="fp-copy" ${ek("CONTENT.fbCopy")}>${CONTENT.fbCopy}</p>
+          <ul class="prompt-list">${prompts}</ul>
+          <div class="fp-actions">
+            <button class="cta-btn" onclick="go('respond')">Respond to the consultation &#8594;</button>
+            <a class="cta-btn secondary" href="#">Download the response matrix</a>
+          </div>
+          <div class="cta-note" ${ek("CONTENT.fbNote")}>${CONTENT.fbNote}</div>
+        </div>
+      </section>
+
+      <footer>
+        <span ${ek("CONTENT.footerLeft")}>${CONTENT.footerLeft}</span>
+        <span ${ek("CONTENT.footerRight")}>${CONTENT.footerRight}</span>
+      </footer>
+    `;
+  }
+
+  function renderPhase(key){
+    const p = PHASES[key];
+    const dimHtml = p.dims.map((d,i) => `
+      <details class="dim-item">
+        <summary>
+          <div class="dim-idx">${i+1}</div>
+          <div class="dim-head"><span class="dim-name" ${ek(`PHASES.${key}.dims.${i}.0`)}>${d[0]}</span></div>
+          <span class="dim-chevron" aria-hidden="true">&#9662;</span>
+        </summary>
+        <div class="dim-desc" ${ek(`PHASES.${key}.dims.${i}.1`)}>${d[1]}</div>
+      </details>`).join("");
+
+    return `
+      <button class="back-link" onclick="go('overview')" aria-label="Back to overview">&#8592; Back to overview</button>
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <button onclick="go('overview')">Programmes</button><span class="sep">/</span>
+        <button onclick="go('overview')">Project readiness tool</button><span class="sep">/</span>
+        <span class="current">${p.title}</span>
+      </nav>
+      <div class="eyebrow">${p.label} &middot; Open Consultation</div>
+      <h1 class="title" style="font-size:34px;">${p.title}</h1>
+      <div class="detail-weight">${p.weight}</div>
+      <p class="purpose-block" ${ek(`PHASES.${key}.purpose`)}>${p.purpose}</p>
+
+      <div class="section-head"><h2>What each dimension asks, and why</h2></div>
+      <div class="dim-scan-hint">Scan the titles, then expand only the ones you're unsure about. No need to read all ${p.dims.length} in full.</div>
+      <div class="dim-list">${dimHtml}</div>
+
+      <div class="phase-feedback-cta">
+        <p><strong>Have feedback on ${p.title}?</strong>Tell us if the right questions are being asked at this phase, or if something critical is missing.</p>
+        <button class="cta-btn" onclick="go('respond', '${key}')">Respond to this phase &#8594;</button>
+      </div>
+    `;
+  }
+
+  function renderAllViews(){
+    document.getElementById("overview").innerHTML = renderOverview();
+    Object.keys(PHASES).forEach(key => {
+      document.getElementById(key).innerHTML = renderPhase(key);
+    });
+  }
+  renderAllViews();
+
+  // ---- response form ----
+  // Sourced directly from the consultation paper's Section 9, so the site and the
+  // paper never drift out of sync. Shown as guiding prompts above a single free-text
+  // box rather than as one mandatory field per question (5 respondent-type-tagged
+  // fields total: who you are, what it relates to, your feedback, an optional
+  // attachment, and consent, deliberately kept short).
+  const ALL_RESPONDENT_QUESTIONS = [
+    "Are the three phases the right division of the preparation lifecycle? Does anything material fall between them?",
+    "Within each phase, are any dimensions missing, redundant, or placed in the wrong phase?",
+    "Are the evidence expectations realistic for the sponsors you work with, at the stage at which they're asked?",
+    "Do the gate items represent the right minimum thresholds for progression?",
+    "Is the effort the tool demands proportionate to the value it returns to a sponsor?",
+  ];
+  const AUDIENCE_QUESTIONS = {
+    "Funder / climate fund": [
+      "Would a completed Phase 2 or Phase 3 return give you enough to decide whether to engage?",
+      "Does the tool's evidence standard sit below, level with, or above your own screening requirements?",
+      "Would a common readiness format across facilities reduce duplication? What prevents adoption?",
+    ],
+    "Development finance institution (DFI)": [
+      "Would a completed Phase 2 or Phase 3 return give you enough to decide whether to engage?",
+      "Does the tool's evidence standard sit below, level with, or above your own screening requirements?",
+      "Would a common readiness format across facilities reduce duplication? What prevents adoption?",
+    ],
+    "Climate technical expert / advisor": [
+      "Does the Phase 1 hazard-to-impact logic distinguish genuine climate rationale from retrofitted framing?",
+      "Are climate additionality and MRV expectations calibrated to what sponsors can produce at each stage?",
+    ],
+    "Government / national designated authority": [
+      "Do the mandate, plan integration and regulatory fields match how origination works in your system?",
+      "Does the tool ask for anything that can only exist after a decision your process takes later?",
+      "Would completing it strengthen or complicate your engagement with financiers?",
+    ],
+    "NGO / civil society": [
+      "Do the safeguards, gender and inclusion dimensions shape design, or only document decisions taken?",
+      "Does the tool create genuine space for community perspectives to change a project?",
+    ],
+    "University / researcher": [
+      "Is the readiness construct analytically sound, and does equal weighting across dimensions hold up?",
+      "Would the portfolio data support credible research on preparation bottlenecks? What else is needed?",
+    ],
+  };
+
+  const PHASE_TAG_OPTIONS = [
+    ["p1", "Concept Readiness"], ["p2", "Investment Readiness"], ["p3", "Transaction Readiness"], ["overall", "The tool overall"],
+  ];
+
+  function guidingQuestionsHtml(respondentType){
+    const extra = AUDIENCE_QUESTIONS[respondentType] || [];
+    const items = ALL_RESPONDENT_QUESTIONS.concat(extra).map(q => `<li>${q}</li>`).join("");
+    return items;
+  }
+
+  function updateGuidingQuestions(){
+    const sel = document.getElementById("f_type");
+    const list = document.getElementById("guidingQs");
+    if (!sel || !list) return;
+    list.innerHTML = guidingQuestionsHtml(sel.value);
+  }
+
+  function updateFileLabel(input){
+    const label = document.getElementById("fileChosenLabel");
+    if (!label) return;
+    label.textContent = input.files && input.files.length ? input.files[0].name : "No file chosen";
+  }
+
+  function renderRespond(prefillPhase){
+    const checkedSet = new Set([prefillPhase && PHASES[prefillPhase] ? prefillPhase : "overall"]);
+    const tagsHtml = PHASE_TAG_OPTIONS.map(([val, label]) => `
+      <label class="phase-tag">
+        <input type="checkbox" name="phase" value="${val}" ${checkedSet.has(val) ? "checked" : ""}>
+        <span>${label}</span>
+      </label>`).join("");
+
+    const context = prefillPhase && PHASES[prefillPhase]
+      ? `<span class="detail-weight">Responding about: ${PHASES[prefillPhase].title}</span>`
+      : "";
+
+    return `
+      <button class="back-link" onclick="go('overview')" aria-label="Back to overview">&#8592; Back to overview</button>
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <button onclick="go('overview')">Programmes</button><span class="sep">/</span>
+        <button onclick="go('overview')">Project readiness tool</button><span class="sep">/</span>
+        <span class="current">Respond to the consultation</span>
+      </nav>
+      <div class="eyebrow">Open Consultation</div>
+      <h1 class="title" style="font-size:34px;">Tell us what to change</h1>
+      <p class="intro-copy" style="margin-bottom:8px;" ${ek("CONTENT.respondIntro")}>${CONTENT.respondIntro}</p>
+      ${context ? `<div style="margin:14px 0 6px;">${context}</div>` : ""}
+
+      <form id="consultForm" onsubmit="return submitRespond(event)" novalidate>
+        <div class="form-section" style="margin-top:30px;">
+          <div class="fs-label">1 &middot; About you</div>
+          <div class="field-grid">
+            <div class="field"><label for="f_name">Name</label><input type="text" id="f_name" name="name"></div>
+            <div class="field"><label for="f_org">Organisation</label><input type="text" id="f_org" name="org"></div>
+            <div class="field"><label for="f_email">Email</label><input type="email" id="f_email" name="email"></div>
+            <div class="field">
+              <label for="f_type">Respondent type</label>
+              <select id="f_type" name="type" onchange="updateGuidingQuestions()">
+                <option value="">Select one&hellip;</option>
+                <option>Funder / climate fund</option>
+                <option>Development finance institution (DFI)</option>
+                <option>Government / national designated authority</option>
+                <option>Climate technical expert / advisor</option>
+                <option>NGO / civil society</option>
+                <option>University / researcher</option>
+                <option>Private sector</option>
+                <option>Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="fs-label">2 &middot; Sections commented on</div>
+          <div class="phase-tags">${tagsHtml}</div>
+        </div>
+
+        <div class="form-section">
+          <div class="fs-label">3 &middot; Your feedback</div>
+          <div class="q-hint" style="margin-bottom:8px;" ${ek("CONTENT.respondFeedbackHint")}>${CONTENT.respondFeedbackHint}</div>
+          <ul class="guiding-list" id="guidingQs">${guidingQuestionsHtml("")}</ul>
+          <textarea name="feedback" rows="7" aria-label="Your feedback" placeholder="Write your response here&hellip;"></textarea>
+        </div>
+
+        <div class="form-section">
+          <div class="fs-label">4 &middot; Attach a document <span class="optional">(optional)</span></div>
+          <div class="q-hint" style="margin-bottom:8px;">Sending marked-up comments on the paper or the Excel tool instead of typing them out? Attach the file here.</div>
+          <div class="file-field">
+            <label class="file-btn" for="f_file">Choose file</label>
+            <input type="file" id="f_file" name="attachment" style="position:absolute; opacity:0; width:1px; height:1px;" onchange="updateFileLabel(this)">
+            <span id="fileChosenLabel" class="file-chosen">No file chosen</span>
+          </div>
+        </div>
+
+        <div class="consent-row">
+          <input type="checkbox" id="f_consent" name="consent">
+          <label for="f_consent">I understand my response is confidential to ACF and won&rsquo;t be visible to other respondents.</label>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="cta-btn" style="background:var(--gold-500); color:var(--green-900); border:none;">Submit response</button>
+          <span style="font-size:12.5px; color:var(--muted);">Consultation open through 30 September 2026</span>
+        </div>
+
+        <div class="matrix-note" ${ek("CONTENT.matrixNote")}>${CONTENT.matrixNote}</div>
+      </form>
+    `;
+  }
+
+  function submitRespond(evt){
+    evt.preventDefault();
+    document.getElementById("respond").innerHTML = `
+      <div class="confirm-panel">
+        <div class="confirm-icon">&#10003;</div>
+        <h1>Thank you</h1>
+        <p>Your response has been received. It's confidential to ACF and won't be shown to other respondents.</p>
+        <p>The consultation stays open through <strong>30 September 2026</strong>. ACF's team will review every submission after it closes, and a summary of what changed as a result will be published alongside the finalised tool.</p>
+        <div class="fp-actions" style="margin-top:22px;">
+          <button class="cta-btn" onclick="go('overview')">Back to overview &#8594;</button>
+        </div>
+      </div>`;
+    return false;
+  }
+
+  let suppressHashHandler = false;
+  function go(view, phaseCtx){
+    document.querySelectorAll("view").forEach(v => v.classList.remove("active"));
+    if (view === "respond") {
+      document.getElementById("respond").innerHTML = renderRespond(phaseCtx);
+    }
+    document.getElementById(view).classList.add("active");
+    const base = "africanclimatefoundation.org / programmes / sustainable-finance / project-readiness-tool";
+    let suffix = "";
+    if (view === "respond") suffix = " / respond";
+    else if (PHASES[view]) suffix = " / " + PHASES[view].slug;
+    document.getElementById("mockUrl").textContent = base + suffix;
+    // Changing location.hash fires 'hashchange' asynchronously; that handler only knows the
+    // view name (not phaseCtx), so it would otherwise clobber a phase-prefilled form. Suppress
+    // that one auto-triggered re-render, go() has already rendered the correct state above.
+    suppressHashHandler = true;
+    location.hash = view === "overview" ? "" : view;
+    document.querySelector(".mock-frame").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  window.addEventListener("hashchange", () => {
+    if (suppressHashHandler) { suppressHashHandler = false; return; }
+    const h = location.hash.replace("#","");
+    if (PHASES[h] || h === "respond") go(h); else go("overview");
+  });
+  (function init(){
+    const h = location.hash.replace("#","");
+    if (PHASES[h] || h === "respond") go(h);
+  })();
+
+  // ---- inline text editing, only lights up where the claude.ai artifact
+  // capability is actually available (window.claude on a published artifact) ----
+  (async function initEditing(){
+    if (!window.claude || typeof window.claude.use !== "function") return; // not on claude.ai: no edit UI at all
+    const ns = await window.claude.use("artifact");
+    if (!ns) return;
+
+    const toolbar = document.getElementById("editToolbar");
+    let editing = false;
+
+    function renderToolbar(status){
+      if (!editing){
+        toolbar.innerHTML = `<button id="btnEdit">Edit text</button><span class="edit-status">${status || ""}</span>`;
+        document.getElementById("btnEdit").onclick = enterEdit;
+      } else {
+        toolbar.innerHTML = `<button id="btnSave" class="primary">Save changes</button><button id="btnCancel" class="quiet">Cancel</button><span class="edit-status">${status || "Click any underlined text to edit it."}</span>`;
+        document.getElementById("btnSave").onclick = saveChanges;
+        document.getElementById("btnCancel").onclick = () => location.reload();
+      }
+    }
+
+    function enterEdit(){
+      editing = true;
+      document.body.classList.add("editing");
+      document.querySelectorAll("[data-edit-key]").forEach(el => { el.contentEditable = "true"; });
+      renderToolbar();
+    }
+
+    async function saveChanges(){
+      // 1. pull edited text back into CONTENT / PHASES
+      document.querySelectorAll("[data-edit-key]").forEach(el => {
+        const path = el.getAttribute("data-edit-key");
+        const root = path.startsWith("PHASES") ? EDIT_ROOTS : EDIT_ROOTS; // both live under EDIT_ROOTS
+        setByPath(EDIT_ROOTS, path, el.innerText.trim());
+      });
+
+      // 2. exit edit mode and re-render canonically from the updated state
+      editing = false;
+      document.body.classList.remove("editing");
+      document.querySelectorAll("[data-edit-key]").forEach(el => el.removeAttribute("contenteditable"));
+      renderAllViews();
+      renderToolbar("Saving…");
+
+      // 3. splice the updated CONTENT/PHASES into a fresh copy of this script's own
+      // original source (never rewrite the function bodies, only the two data blocks)
+      const originalScript = document.getElementById("siteScript").textContent;
+      let scriptText = originalScript
+        .replace(/\/\*__CONTENT_START__\*\/[\s\S]*?\/\*__CONTENT_END__\*\//, `/*__CONTENT_START__*/ ${JSON.stringify(CONTENT)} /*__CONTENT_END__*/`)
+        .replace(/\/\*__PHASES_START__\*\/[\s\S]*?\/\*__PHASES_END__\*\//, `/*__PHASES_START__*/ ${JSON.stringify(PHASES)} /*__PHASES_END__*/`);
+
+      // 4. build the full replacement document (style/link read from the DOM since
+      // they never change; body wrapper reflects the just-refreshed views above)
+      const styleTag = document.querySelector("style").outerHTML;
+      const linkTag = document.querySelector('link[rel="stylesheet"]').outerHTML;
+      const bodyWrapper = document.querySelector(".mock-frame").parentElement.outerHTML;
+      const toolbarHtml = `<div class="edit-toolbar" id="editToolbar" style="display:none;"></div>`;
+
+      const fullHtml = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Readiness Tool</title>
+${styleTag}
+${linkTag}
+</head>
+<body>
+${bodyWrapper}
+${toolbarHtml}
+<script id="siteScript">${scriptText}<\/script>
+</body>
+</html>`;
+
+      try{
+        await ns.publish(fullHtml);
+        // a successful publish reloads this view automatically
+      } catch(e){
+        if (e && e.code === "conflict"){
+          // the view is already being reloaded to the newer version
+        } else {
+          renderToolbar("Couldn't save" + (e && e.message ? ": " + e.message : "") + ". Try again.");
+        }
+      }
+    }
+
+    renderToolbar();
+    toolbar.style.display = "flex";
+  })();
+</script>
+
+</body>
+</html>
